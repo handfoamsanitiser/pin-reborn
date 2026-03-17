@@ -3,6 +3,7 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include "utils.h"
+#include "stb_image.h"
 
 int main(void) {
 	// Boilerplate start
@@ -25,6 +26,8 @@ int main(void) {
 	}
 	
 	glViewport(0, 0, 800, 600);
+	
+	stbi_set_flip_vertically_on_load(true);
 	// Boilerplate end
 	
 	const char *vertSource = ReadFileToString("default.vert");
@@ -47,10 +50,10 @@ int main(void) {
 	glDeleteShader(fragShader);
 	
 	GLfloat vertices[] = {
-		-0.5f, -0.5f, 0.0f,
-		-0.5f, 0.5f, 0.0f,
-		0.5f, 0.5f, 0.0f,
-		0.5f, -0.5f, 0.0f
+		-0.5f, -0.5f, 0.0f,		0.0f, 0.0f,
+		-0.5f, 0.5f, 0.0f,		0.0f, 1.0f,
+		0.5f, 0.5f, 0.0f,		1.0f, 1.0f,
+		0.5f, -0.5f, 0.0f,		1.0f, 0.0f
 	};
 	
 	GLuint indices[] = {
@@ -75,16 +78,47 @@ int main(void) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW); 
 	
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);  
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 	
-	while(!glfwWindowShouldClose(window)) {
-		glfwSwapBuffers(window);
-		glfwPollEvents();
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);  
+	
+	GLuint texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	
+	int width, height, nrChannels;
+	unsigned char *data = stbi_load("resources/image.jpg", &width, &height, &nrChannels, 0);
+	if (data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else {
+        printf("cooked...");
+		printf("%s", stbi_failure_reason());
+    }
+	stbi_image_free(data);
+	
+	glUseProgram(shaderProgram);
+	glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0);
+	
+	while(!glfwWindowShouldClose(window)) {		
+		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+	
+		glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
 		
 		glUseProgram(shaderProgram);
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		
+		glfwSwapBuffers(window);
+		glfwPollEvents();
 	}
 	
 	free((char*)vertSource);
