@@ -1,21 +1,9 @@
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
-const char* BASE_SHADER_PATH = "something";
-
-const char* ReadFileToString(const char* fileName) {
-    char fullShaderPath[32];
-    for (int i = 0; i < sizeof(fullShaderPath); ++i) {
-        fullShaderPath[i] = '\0';
-    }
-
-    strcat(fullShaderPath, BASE_SHADER_PATH);
-    strcat(fullShaderPath, fileName);
-    //printf("%s\n", fullShaderPath);
-
-    FILE* file = fopen(fullShaderPath, "r");
+const char* ReadFileToString(const char* filePath) {
+    FILE* file = fopen(filePath, "r");
 
     if (file == NULL) {
         printf("Failed to read file.");

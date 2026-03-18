@@ -1,12 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
+
 #include "utils.h"
 #include "stb_image.h"
 
 int main(void) {
 	// Boilerplate start
+	setbuf(stdout, NULL);
+
 	glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -30,8 +35,8 @@ int main(void) {
 	stbi_set_flip_vertically_on_load(true);
 	// Boilerplate end
 	
-	const char *vertSource = ReadFileToString("default.vert");
-	const char *fragSource = ReadFileToString("default.frag");
+	const char *vertSource = ReadFileToString("shaders/default.vert");
+	const char *fragSource = ReadFileToString("shaders/default.frag");
 	
 	GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertShader, 1, &vertSource, NULL);
