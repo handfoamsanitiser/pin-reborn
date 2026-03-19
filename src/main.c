@@ -3,8 +3,6 @@
 #include <stdbool.h>
 #include <time.h>
 
-#include <unistd.h>
-
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
@@ -14,7 +12,7 @@
 
 int main(void) {
 	// Boilerplate start
-	const double TARGET_FPS = 30.0;
+	const float TARGET_FPS = 60.0;
 
 	setbuf(stdout, NULL);
 
@@ -120,6 +118,7 @@ int main(void) {
 	mat4x4 trans;
 	mat4x4_identity(trans);
 	mat4x4_translate(trans, 0.5f, 0.5f, 0.0f);
+	//glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transform"), 1, GL_FALSE, trans[0]);
 	
 	clock_t start, end;
 
@@ -144,11 +143,11 @@ int main(void) {
 
 		end = clock();
 
-		double diff = (double)(end - start) / CLOCKS_PER_SEC * 1000.0;
+		float diff = (float)(end - start) / CLOCKS_PER_SEC * 1000.0f;
 		if (diff < (1000.0 / TARGET_FPS)) {
-			printf("%fms\n", (1000.0 / TARGET_FPS - diff));
-			// usleep is in microseconds, hence * 1000.0
-			usleep((1000.0 / TARGET_FPS - diff) * 1000.0);
+			float time_to_sleep = 1000.0f / TARGET_FPS - diff;
+			printf("%fms\n", time_to_sleep);
+			sleep_c(time_to_sleep);
 		}
 	}
 	

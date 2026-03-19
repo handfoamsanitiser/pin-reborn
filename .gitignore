@@ -1,3 +1,4 @@
 .useless
-build.txt
+build.bat
 test.exe
+include/platform.h

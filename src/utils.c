@@ -1,6 +1,24 @@
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "platform.h"
+
+#ifdef PLATFORM_WINDOWS
+#include <windows.h>
+
+void sleep_c(float milliseconds) {
+	Sleep(milliseconds);
+}
+
+#else
+#include <unistd.h>
+
+void sleep_c(float milliseconds) {
+	// usleep is in microseconds, hence * 1000.0f
+	usleep(milliseconds * 1000.0f);
+}
+
+#endif
 
 const char* ReadFileToString(const char* filePath) {
     FILE* file = fopen(filePath, "r");
@@ -24,3 +42,4 @@ const char* ReadFileToString(const char* filePath) {
     fclose(file);
     return string;
 }
+
