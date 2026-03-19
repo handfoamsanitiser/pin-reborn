@@ -1,15 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <time.h>
+
+#include <unistd.h>
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
 #include "utils.h"
 #include "stb_image.h"
+#include "linmath.h"
 
 int main(void) {
 	// Boilerplate start
+	const double TARGET_FPS = 30.0;
+
 	setbuf(stdout, NULL);
 
 	glfwInit();
@@ -110,8 +116,16 @@ int main(void) {
 	
 	glUseProgram(shaderProgram);
 	glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0);
+
+	mat4x4 trans;
+	mat4x4_identity(trans);
+	mat4x4_translate(trans, 0.5f, 0.5f, 0.0f);
 	
-	while(!glfwWindowShouldClose(window)) {		
+	clock_t start, end;
+
+	while(!glfwWindowShouldClose(window)) {
+		start = clock();
+
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 	
@@ -119,11 +133,23 @@ int main(void) {
         glBindTexture(GL_TEXTURE_2D, texture);
 		
 		glUseProgram(shaderProgram);
+		mat4x4_rotate_Z(trans, trans, 0.1f);
+		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transform"), 1, GL_FALSE, trans[0]);
+
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+
+		end = clock();
+
+		double diff = (double)(end - start) / CLOCKS_PER_SEC * 1000.0;
+		if (diff < (1000.0 / TARGET_FPS)) {
+			printf("%fms\n", (1000.0 / TARGET_FPS - diff));
+			// usleep is in microseconds, hence * 1000.0
+			usleep((1000.0 / TARGET_FPS - diff) * 1000.0);
+		}
 	}
 	
 	free((char*)vertSource);
