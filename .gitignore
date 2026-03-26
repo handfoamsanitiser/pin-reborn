@@ -1,4 +1,5 @@
 .useless
 build.bat
+build.sh
 test.exe
 include/platform.h
