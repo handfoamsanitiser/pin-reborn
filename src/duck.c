@@ -42,6 +42,8 @@ GLuint texShaderProgram;
 
 GLFWwindow *window;
 
+const int SCREEN_WIDTH = 800;
+const int SCREEN_HEIGHT = 600;
 const float TARGET_FPS = 60.0;
 
 int duck_init(void) {
@@ -54,7 +56,7 @@ int duck_init(void) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	
-	window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+	window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "LearnOpenGL", NULL, NULL);
 	if (window == NULL) {
 		printf("Failed to create GLFW window");
 		glfwTerminate();
@@ -72,7 +74,7 @@ int duck_init(void) {
 		return -1;
 	}
 	
-	glViewport(0, 0, 800, 600);
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable( GL_BLEND );
 
@@ -172,8 +174,12 @@ void duck_main_loop(void (*main_loop)(void)) {
 		float diff = (float)(end - start) / CLOCKS_PER_SEC * 1000.0f;
 		if (diff < (1000.0f / TARGET_FPS)) {
 			float time_to_sleep = 1000.0f / TARGET_FPS - diff;
+			if (time_to_sleep < 15.0f) {
+				printf("Uh oh! - %fms\n", time_to_sleep);
+			} else {
+				sleep_c(time_to_sleep);
+			}
 			//printf("%fms\n", time_to_sleep);
-			sleep_c(time_to_sleep);
 		}
 	}
 }

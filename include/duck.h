@@ -1,4 +1,4 @@
-#pragma once
+#pragma oncew
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include "linmath.h"
@@ -9,6 +9,11 @@ extern GLuint texRectVAO;
 extern GLuint basicRectVBO;
 extern GLuint texRectVBO;
 extern GLuint rectEBO;*/
+
+extern const int SCREEN_WIDTH;
+extern const int SCREEN_HEIGHT;
+
+extern GLFWwindow *window;
 
 int duck_init(void);
 void duck_main_loop(void (*main_loop)(void));

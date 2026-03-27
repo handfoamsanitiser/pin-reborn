@@ -9,6 +9,11 @@
 #include "stb_image.h"
 #include "utils.h"
 
+mat4x4 pos;
+mat4x4 scale;
+mat4x4 result;
+
+void init(void);
 void main_loop(void);
 
 int main(void) {
@@ -17,6 +22,7 @@ int main(void) {
 		return -1;
 	}
 
+	init();
 	duck_main_loop(&main_loop);
 	
 	/*GLuint texture;
@@ -47,19 +53,29 @@ int main(void) {
 	return 0;
 }
 
+void init(void) {
+	mat4x4_identity(pos);
+	mat4x4_identity(scale);
+	mat4x4_identity(result);
+	mat4x4_scale_aniso(scale, scale, 0.2f, 0.2f, 0.0f);
+}
+
 void main_loop(void) {
 	// processing
-	mat4x4 trans;
-    mat4x4_identity(trans);
+	//if (glfwGetKey())
 
-    //mat4x4_translate(trans, 0.5f, 0.5f, 0.0f);
-    mat4x4_scale_aniso(trans, trans, 0.2f, 0.2f, 0.2f);
+	vec4 colour = {0.5f, 0.5f, 0.0f, 1.0f};
 
-    vec4 colour = {0.5f, 0.5f, 0.0f, 1.0f};
+	if (glfwGetKey(window, GLFW_KEY_A)) {
+		mat4x4_translate_in_place(pos, -0.01f, 0.0f, 0.0f);
+	} else if (glfwGetKey(window, GLFW_KEY_D)) {
+		mat4x4_translate_in_place(pos, 0.01f, 0.0f, 0.0f);
+	}
+	mat4x4_mul(result, pos, scale);
 
     // rendering
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-	duck_draw_basic_rect(trans, colour);
+	duck_draw_basic_rect(result, colour);
 }
