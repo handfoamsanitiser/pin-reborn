@@ -11,6 +11,8 @@
 #include "linmath.h"
 #include "stb_image.h"
 #include "utils.h"
+#include "platform.h"
+#include "timeapi.h"
 
 GLuint basicRectVAO;
 GLuint texRectVAO;
@@ -40,6 +42,9 @@ GLuint rectIndeces[] = {
 GLuint colourShaderProgram;
 GLuint texShaderProgram;
 
+GLuint textures[16];
+int textureCount = 0;
+
 GLFWwindow *window;
 
 const int SCREEN_WIDTH = 800;
@@ -49,6 +54,13 @@ const float TARGET_FPS = 60.0;
 int duck_init(void) {
 
 	setbuf(stdout, NULL);
+	
+	#ifdef PLATFORM_WINDOWS
+	timeBeginPeriod(1);
+	#endif
+	
+	timerFreq = timer_freq_c();
+	printf("timerFreq:%li\n", timerFreq);
 
 	glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -116,10 +128,10 @@ int duck_init(void) {
 	glEnableVertexAttribArray(1);  
 
 
-	const char *regVertSource = ReadFileToString("shaders/no_texture.vert");
-	const char *texVertSource = ReadFileToString("shaders/texture.vert");
-	const char *colourFragSource = ReadFileToString("shaders/no_texture.frag");
-	const char *texFragSource = ReadFileToString("shaders/texture.frag");
+	const char *regVertSource = read_file_to_string("shaders/no_texture.vert");
+	const char *texVertSource = read_file_to_string("shaders/texture.vert");
+	const char *colourFragSource = read_file_to_string("shaders/no_texture.frag");
+	const char *texFragSource = read_file_to_string("shaders/texture.frag");
 	
 	GLuint regVertShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(regVertShader, 1, &regVertSource, NULL);
@@ -137,6 +149,11 @@ int duck_init(void) {
 	glShaderSource(texFragShader, 1, &texFragSource, NULL);
 	glCompileShader(texFragShader);
 	
+	free((char*)regVertSource);
+	free((char*)texVertSource);
+	free((char*)colourFragSource);
+	free((char*)texFragSource);
+	
 	colourShaderProgram = glCreateProgram();
 	glAttachShader(colourShaderProgram, regVertShader);
 	glAttachShader(colourShaderProgram, colourFragShader);
@@ -152,36 +169,49 @@ int duck_init(void) {
 	glDeleteShader(colourFragShader);
 	glDeleteShader(texFragShader);
 
-	free((char*)regVertSource);
-	free((char*)texVertSource);
-	free((char*)colourFragSource);
-	free((char*)texFragSource);
+	
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	
+	
 }
 
 void duck_main_loop(void (*main_loop)(void)) {
-	clock_t start, end;
+	double startTime, endTime;
 
 	while(!glfwWindowShouldClose(window)) {
-		start = clock();
+		startTime = get_time();
 
 		main_loop();
 		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
-		end = clock();
+		endTime = get_time();
 
-		float diff = (float)(end - start) / CLOCKS_PER_SEC * 1000.0f;
-		if (diff < (1000.0f / TARGET_FPS)) {
-			float time_to_sleep = 1000.0f / TARGET_FPS - diff;
-			if (time_to_sleep < 15.0f) {
-				printf("Uh oh! - %fms\n", time_to_sleep);
-			} else {
-				sleep_c(time_to_sleep);
-			}
-			//printf("%fms\n", time_to_sleep);
+		double diff = (endTime - startTime) * 1000.0;
+		if (diff < (1000.0 / TARGET_FPS)) {
+			double time_to_sleep = 1000.0 / TARGET_FPS - diff;
+			sleep_c(time_to_sleep);
 		}
+		endTime = get_time();
+		double FPS = 1.0 / (endTime - startTime);
+		printf("FPS: %f\n", FPS);
 	}
+}
+
+void duck_deinit(void) {
+	glDeleteBuffers(1, &basicRectVBO);
+	glDeleteBuffers(1, &texRectVBO);
+	glDeleteBuffers(1, &rectEBO);
+
+	glDeleteVertexArrays(1, &basicRectVAO);
+	glDeleteVertexArrays(1, &texRectVAO);
+
+	glDeleteProgram(colourShaderProgram);
+	glDeleteProgram(texShaderProgram);
 }
 
 void duck_draw_basic_rect(mat4x4 transform, vec4 colour) {
@@ -196,14 +226,32 @@ void duck_draw_basic_rect(mat4x4 transform, vec4 colour) {
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-void duck_deinit(void) {
-	glDeleteBuffers(1, &basicRectVBO);
-	glDeleteBuffers(1, &texRectVBO);
-	glDeleteBuffers(1, &rectEBO);
+void duck_draw_tex_rect(mat4x4 transform, GLuint textureUnit) {
+	GLuint transLoc = glGetUniformLocation(texShaderProgram, "transform");
+	GLuint texUnitLoc = glGetUniformLocation(texShaderProgram, "textureUnit");
+	
+	glUseProgram(texShaderProgram);
+	glUniformMatrix4fv(transLoc, 1, GL_FALSE, transform[0]);
+	glUniform1i(texUnitLoc, textureUnit);
+}
 
-	glDeleteVertexArrays(1, &basicRectVAO);
-	glDeleteVertexArrays(1, &texRectVAO);
-
-	glDeleteProgram(colourShaderProgram);
-	glDeleteProgram(texShaderProgram);
+void duck_add_texture(const char* fileName, GLuint *textureID) {
+	if (textureCount >= 16) return;
+	
+	int width, height, nrChannels;
+	unsigned char *data = stbi_load(fileName, &width, &height, &nrChannels, 0);
+	
+	if (data) {
+		glGenTextures(1, textureID);
+		glBindTexture(GL_TEXTURE_2D, *textureID);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		textureCount++;
+	} else {
+		printf("Failed to load image: %s\n", fileName);
+		printf("%s", stbi_failure_reason());
+		return;
+	}
+	
+	stbi_image_free(data);
 }
